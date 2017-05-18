@@ -1,0 +1,8 @@
+{
+  "name": "pegp",
+  "main": "./build/index.js",
+  "typings": "./build/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^7.0.18"
+  }
+}
