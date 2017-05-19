@@ -89,8 +89,7 @@ const ID = Re(/^[$a-zA-Z\u00C0-\u017F_][$a-zA-Z\u00C0-\u017F_0-9]*$/)
 
 const LBRACKET = O('{')
 const RBRACKET = O('}')
-const LPAREN = O('(')
-const RPAREN = O(')')
+
 const COLON = O(':')
 const SEMICOLON = O(';')
 const INTERROGATION = O('?')
@@ -141,7 +140,7 @@ const DOTTED_NAME = _(ID, Z(DOT, ID))
 
 // Used to swallow properties that would otherwise be keywords
 const DOTTED_GUARD = _(DOT, Either(
-  _(ID.class('function-call'), LookAhead(LPAREN)),
+  _(ID.class('function-call'), LookAhead('(')),
   ID
 ))
 
@@ -261,7 +260,7 @@ const ARROW_FUNCTION = _(
 
 const FUNCTION = Either(NAMED_FUNCTION, ARROW_FUNCTION)
 
-const FUNCTION_CALL = _(ID.class('function-call'), LookAhead(LPAREN))
+const FUNCTION_CALL = _(ID.class('function-call'), LookAhead('('))
 
 //////////////////////////////////////////////////////////////
 
