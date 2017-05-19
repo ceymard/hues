@@ -1,5 +1,6 @@
 {
-  "name": "hued",
+  "name": "hues",
+  "version": "0.0.1",
   "main": "./build/index.js",
   "typings": "./build/index.d.ts",
   "devDependencies": {
