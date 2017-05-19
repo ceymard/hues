@@ -227,21 +227,31 @@ const TYPE_BLOCK = _(
   TYPE_DECL
 )
 
+const SINGLE_ARGUMENT = _(
+  Optional(K('public', 'private', 'protected')),
+  ID.class('argument'),
+  Optional(TYPE_BLOCK),
+  Optional(
+    O('='),
+    Try(TOPLEVEL).until(LookAhead(Either(')', ',')))
+  ),
+  Optional(O(','))
+)
+
 ARGUMENTS.define(
-  LPAREN,
-  // FIXME, type is more than just an ID !!!
-  Try(_(ID.class('argument'), Optional(TYPE_BLOCK))).until(LookAhead(RPAREN)),
-  RPAREN,
+  O('('),
+  Z(SINGLE_ARGUMENT),
+  O(')'),
   Optional(TYPE_BLOCK)
 )
 
 const NAMED_FUNCTION = _(
   K('function'),
   Optional(ID).class('function'),
-  TYPE_GENERIC.class('type'),
+  Optional(TYPE_GENERIC.class('type')),
   ARGUMENTS,
   CODE_BLOCK
-)
+).class('function-declaration')
 
 const ARROW_FUNCTION = _(
   Either(_(Optional(TYPE_GENERIC.class('type')), ARGUMENTS), ID),
