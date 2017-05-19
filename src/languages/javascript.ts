@@ -84,7 +84,7 @@ const LITERALS = Str(
   'undefined',
 ).class('literal')
 
-const ID = Re(/[a-zA-Z\u00C0-\u017F_][a-zA-Z\u00C0-\u017F_0-9]*/)
+const ID = Re(/^[$a-zA-Z\u00C0-\u017F_][$a-zA-Z\u00C0-\u017F_0-9]*$/)
 
 
 const LBRACKET = O('{')
@@ -187,9 +187,12 @@ const TYPE_BODY = _(
   RBRACKET
 )
 
+const TYPE_GENERIC_DECL = _(TYPE_DECL, Optional(O('='), TYPE_DECL))
+const TYPE_GENERIC = _(O('<'), TYPE_GENERIC_DECL, Z(O(','), TYPE_GENERIC_DECL), O('>'))
+
 TYPE_DECL.define(
   _(Either(
-    _(ID, Optional(O('<'), TYPE_DECL, O('>')), Optional('[', ']')),
+    _(ID, Optional(TYPE_GENERIC), Optional('[', ']')),
     SIMPLE_STRING,
     TYPE_BODY
   ),
@@ -232,12 +235,13 @@ ARGUMENTS.define(
 const NAMED_FUNCTION = _(
   K('function'),
   Optional(ID).class('function'),
+  TYPE_GENERIC.class('type'),
   ARGUMENTS,
   CODE_BLOCK
 )
 
 const ARROW_FUNCTION = _(
-  Either(ARGUMENTS, ID),
+  Either(_(Optional(TYPE_GENERIC.class('type')), ARGUMENTS), ID),
   O('=>'),
   Optional(CODE_BLOCK)
 )
@@ -318,7 +322,7 @@ Language.create(LANGUAGE, /^[\t\n\r ]+$/,
   /\$\{/,
   /\+\+|\-\-/,
   /\/\*|\*\/|\/\//, // comments
-  /[a-zA-Z\u00C0-\u017F0-9_]+/, // idents and numbers
+  /[$a-zA-Z\u00C0-\u017F0-9_]+/, // idents and numbers
   /[\t \r]+|\n/,
   /./
 ).alias(
