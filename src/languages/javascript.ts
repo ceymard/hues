@@ -269,11 +269,26 @@ const ATTRIBUTE = _(VALID_ATTRIBUTE_NAME, Optional(Either(
   _(ASSIGN, LBRACKET, Try(TOPLEVEL).until(LookAhead(RBRACKET)).class('toplevel typescript'), RBRACKET),
   _(ASSIGN, SIMPLE_STRING)
 )))
-const OPENING_TAG = _('<', DOTTED_NAME, Try(ATTRIBUTE).until(Either('>', '/>'))).class('tag')
-const CLOSING_TAG = _('</', DOTTED_NAME, '>').class('tag')
 
-const JSX = _()
-JSX.define(OPENING_TAG, Try(JSX).until(CLOSING_TAG))
+const OPENING_TAG_START = _('<', DOTTED_NAME, Z(ATTRIBUTE))
+
+const OPENING_TAG = _(OPENING_TAG_START, '>').class('tag')
+const SELF_CLOSING_TAG = _(OPENING_TAG_START, '/>').class('tag')
+const CLOSING_TAG = _('</', DOTTED_NAME, '>').class('tag')
+const HTML_ENTITY = _(O('&'), ID, O(';')).class('entity')
+
+const _JSX = _()
+
+_JSX.define(Either(
+  _(OPENING_TAG, Try(
+    _JSX,
+    HTML_ENTITY,
+    CODE_BLOCK.class('toplevel typescript')
+  ).until(CLOSING_TAG)),
+  SELF_CLOSING_TAG
+))
+
+const JSX = _JSX.class('jsx')
 
 ///////////////////////////////////////////////////////////////////
 
@@ -284,8 +299,7 @@ TOPLEVEL.define(Either(
   TYPE_DEF,
   TYPED_VAR,
   FUNCTION,
-  OPENING_TAG,
-  CLOSING_TAG,
+  JSX,
   OBJECT_LITERAL,
   CODE_BLOCK,
   DOTTED_GUARD,
