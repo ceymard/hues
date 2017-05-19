@@ -191,15 +191,18 @@ const TYPE_GENERIC_DECL = _(TYPE_DECL, Optional(O('='), TYPE_DECL))
 const TYPE_GENERIC = _(O('<'), TYPE_GENERIC_DECL, Z(O(','), TYPE_GENERIC_DECL), O('>'))
 
 TYPE_DECL.define(
-  _(Either(
-    _(ID, Optional(TYPE_GENERIC), Optional('[', ']')),
-    SIMPLE_STRING,
-    TYPE_BODY
-  ),
-  Z(
-    Either(O('|'), O('&')),
-    TYPE_DECL
-  )).class('type')
+  _(
+    Either(
+      _(ID, Optional(TYPE_GENERIC), Optional('[', ']')),
+      SIMPLE_STRING,
+      NUMBER,
+      TYPE_BODY
+    ),
+    Z(
+      O('|', '&'),
+      TYPE_DECL
+    )
+  ).class('type')
 )
 
 const TYPE_DEF = Either(
@@ -317,7 +320,7 @@ const LANGUAGE = Try(TOPLEVEL)
 Language.create(LANGUAGE, /^[\t\n\r ]+$/,
   /===|!==|==|!=|>=|<=/,
   /&&|\|\|/,
-  />>>|>>|<<|\/>|<\//,
+  /<<|\/>|<\//,
   /\+=|\*=|\/=|%=/,
   /\$\{/,
   /\+\+|\-\-/,

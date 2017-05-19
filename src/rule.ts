@@ -81,8 +81,6 @@ export class CloneRule extends BaseRule {
  */
 export class Rule extends BaseRule {
 
-  skipping = true
-
   constructor(public subrules: BaseRule[]) { super() }
 
   exec(s: Stream): Result {
