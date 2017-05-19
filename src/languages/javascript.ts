@@ -7,39 +7,97 @@
 
 import {
   Any,
-  Either, Try, Re, _, Op, Rule, LookAhead, TryRule, K, Optional, Str, ZeroOrMore
+  Either, Try, Re, _, O, Rule, LookAhead, K, Optional, Str, Z,
+  Language
 } from '../rule'
 
 
 const KEYWORDS = K(
-  'import', 'from', 'export',
-  'var', 'let', 'const',
-  'new', 'as',
-  'type', 'class', 'interface', 'extends',
-  'if', 'for', 'while', 'switch', 'case', 'default',
-  'declare', 'public', 'private', 'protected',
+  'abstract',
+  'any',
+  'as',
+  'async',
+  'await',
+  'boolean',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'constructor',
+  'continue',
+  'debugger',
+  'declare',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'finally',
+  'for',
+  'from',
+  'function',
+  'get',
+  'if',
+  'implements',
+  'import',
+  'in',
+  'instanceof',
+  'interface',
+  'let',
+  'module',
   'namespace',
-  'return', 'break', 'continue'
+  'new',
+  'number',
+  'of',
+  'package',
+  'private',
+  'protected',
+  'public',
+  'require',
+  'return',
+  'set',
+  'static',
+  'string',
+  'switch',
+  'symbol',
+  'throw',
+  'try',
+  'type',
+  'typeof',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield',
 )
 
 const LITERALS = Str(
-  'null', 'undefined', 'true', 'false', 'NaN'
+  'false',
+  'NaN',
+  'null',
+  'super',
+  'this',
+  'true',
+  'undefined',
 ).class('literal')
 
 const ID = Re(/[a-zA-Z\u00C0-\u017F_][a-zA-Z\u00C0-\u017F_0-9]*/)
 
 
-const LBRACKET = Op('{')
-const RBRACKET = Op('}')
-const LPAREN = Op('(')
-const RPAREN = Op(')')
-const COLON = Op(':')
-const SEMICOLON = Op(';')
-const INTERROGATION = Op('?')
+const LBRACKET = O('{')
+const RBRACKET = O('}')
+const LPAREN = O('(')
+const RPAREN = O(')')
+const COLON = O(':')
+const SEMICOLON = O(';')
+const INTERROGATION = O('?')
 // const EXCLAM = Op('!')
 // const COMMA = Op(',')
-const DOT = Op('.')
-const ASSIGN = Op('=')
+const DOT = O('.')
+const ASSIGN = O('=')
 
 const TOPLEVEL = _() as Rule
 
@@ -60,9 +118,9 @@ const SIMPLE_STRING = Either(
 ).class('string')
 
 const TEMPLATE_STRING = _(
-  '`',
-  Try(_('${', Try(TOPLEVEL).until('}')).class('typescript'))
-    .until('`')
+  O('`'),
+  Try(_(O('${'), Try(TOPLEVEL).until(LookAhead('}')).class('toplevel typescript'), O('}')).class('typescript'))
+    .until(O('`'))
 ).class('string template-string')
 
 const STRING = Either(SIMPLE_STRING, TEMPLATE_STRING)
@@ -79,35 +137,80 @@ const CODE_BLOCK = _(LBRACKET, Try(TOPLEVEL).until(LookAhead(RBRACKET)), RBRACKE
 // Forward declaration
 const OBJECT_LITERAL = _()
 
-//////////////////////////////////////////////////////////////
+const DOTTED_NAME = _(ID, Z(DOT, ID))
 
-const _TYPE_DECL = _()
+// Used to swallow properties that would otherwise be keywords
+const DOTTED_GUARD = _(DOT, Either(
+  _(ID.class('function-call'), LookAhead(LPAREN)),
+  ID
+))
 
-_TYPE_DECL.define(
-  Either(
-    _(ID, Optional(Op('<'), _TYPE_DECL, Op('>')), Optional('[', ']')),
-    SIMPLE_STRING,
-    OBJECT_LITERAL
-  ),
-  ZeroOrMore(
-    Either(Op('|'), Op('&')),
-    _TYPE_DECL
-  )
+///////////////////////////////////////////////////////////////
+
+const DECORATOR = _(
+  O('@'),
+  DOTTED_NAME.class('tag-name')
+).class('decorator')
+
+const OBJECT_PROPERTY = _(
+  Either(ID, SIMPLE_STRING).class('property'),
+  Optional(INTERROGATION),
+  COLON
 )
 
-const TYPE_DECL = _TYPE_DECL.class('type')
+
+//////////////////////////////////////////////////////////////
+
+const TYPE_DECL = _()
+
+const ARGUMENTS = _()
+
+const METHOD = _(
+  ID.class('function method'),
+  ARGUMENTS,
+  Either(CODE_BLOCK, SEMICOLON)
+)
+
+const CLASS_PROPERTY = _(
+  OBJECT_PROPERTY,
+  Optional(TYPE_DECL)
+)
+
+const TYPE_BODY = _(
+  LBRACKET,
+  Try(Either(
+    DECORATOR,
+    METHOD,
+    CLASS_PROPERTY,
+    TOPLEVEL
+  )).until(LookAhead(RBRACKET)),
+  RBRACKET
+)
+
+TYPE_DECL.define(
+  _(Either(
+    _(ID, Optional(O('<'), TYPE_DECL, O('>')), Optional('[', ']')),
+    SIMPLE_STRING,
+    TYPE_BODY
+  ),
+  Z(
+    Either(O('|'), O('&')),
+    TYPE_DECL
+  )).class('type')
+)
 
 const TYPE_DEF = Either(
-  _(K('type'), TYPE_DECL, Op('='), TYPE_DECL),
+  _(K('type'), TYPE_DECL, O('='), TYPE_DECL),
   _(
     Either(K('interface'), K('class')),
     TYPE_DECL,
-    Optional(K('extends'), TYPE_DECL)
+    Optional(K('extends'), TYPE_DECL),
+    TYPE_BODY
   )
 )
 
 const TYPED_VAR = Either(
-  _(ID, Op(':'), TYPE_DECL),
+  _(ID, O(':'), TYPE_DECL),
   _(K('as'), TYPE_DECL)
 )
 
@@ -118,18 +221,12 @@ const TYPE_BLOCK = _(
   TYPE_DECL
 )
 
-const ARGUMENTS = _(
+ARGUMENTS.define(
   LPAREN,
   // FIXME, type is more than just an ID !!!
   Try(_(ID.class('argument'), Optional(TYPE_BLOCK))).until(LookAhead(RPAREN)),
   RPAREN,
   Optional(TYPE_BLOCK)
-)
-
-const METHOD = _(
-  ID.class('function method'),
-  ARGUMENTS,
-  Either(CODE_BLOCK, SEMICOLON)
 )
 
 const NAMED_FUNCTION = _(
@@ -141,32 +238,20 @@ const NAMED_FUNCTION = _(
 
 const ARROW_FUNCTION = _(
   ARGUMENTS,
-  Op('=>'),
+  O('=>'),
   Optional(CODE_BLOCK)
 )
 
 const FUNCTION = Either(NAMED_FUNCTION, ARROW_FUNCTION)
 
+const FUNCTION_CALL = _(ID.class('function-call'), LookAhead(LPAREN))
+
 //////////////////////////////////////////////////////////////
-
-const OBJECT_PROPERTY = _(
-  Either(ID, SIMPLE_STRING).class('property'),
-  Optional(INTERROGATION),
-  COLON
-)
-
-const DOTTED_NAME = _(ID, ZeroOrMore(DOT, ID)).class('tagname')
-
-const DECORATOR = _(
-  Op('@'),
-  DOTTED_NAME
-).class('decorator')
 
 OBJECT_LITERAL.define(
   LBRACKET,
   LookAhead(Either(OBJECT_PROPERTY, RBRACKET, METHOD)),
   Try(Either(
-    DECORATOR,
     OBJECT_PROPERTY,
     METHOD,
     TOPLEVEL,
@@ -174,9 +259,11 @@ OBJECT_LITERAL.define(
   RBRACKET
 ).class('object')
 
+// Missing the object type declaration.
+
 ///////////////////////////////////////////////////////////////////
 
-const VALID_ATTRIBUTE_NAME = _(ID, ZeroOrMore('-', ID)).class('attribute')
+const VALID_ATTRIBUTE_NAME = _(ID, Z('-', ID)).class('attribute')
 
 const ATTRIBUTE = _(VALID_ATTRIBUTE_NAME, Optional(Either(
   _(ASSIGN, LBRACKET, Try(TOPLEVEL).until(LookAhead(RBRACKET)).class('toplevel typescript'), RBRACKET),
@@ -201,8 +288,25 @@ TOPLEVEL.define(Either(
   CLOSING_TAG,
   OBJECT_LITERAL,
   CODE_BLOCK,
+  DOTTED_GUARD,
   KEYWORDS,
-  LITERALS
+  LITERALS,
+  FUNCTION_CALL,
 ))
 
-export const LANGUAGE: TryRule = Try(TOPLEVEL)
+const LANGUAGE = Try(TOPLEVEL)
+
+Language.create(LANGUAGE,
+  /===|!==|==|!=|>=|<=/,
+  /&&|\|\|/,
+  />>>|>>|<<|\/>|<\//,
+  /\+=|\*=|\/=|%=/,
+  /\$\{/,
+  /\+\+|\-\-/,
+  /\/\*|\*\/|\/\//, // comments
+  /[a-zA-Z\u00C0-\u017F0-9_]+/, // idents and numbers
+  /[\t \r]+|\n/,
+  /./
+).alias(
+  'ts', 'js', 'tsx', 'jsx', 'javascript', 'typescript', 'react'
+)

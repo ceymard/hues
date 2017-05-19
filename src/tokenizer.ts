@@ -2,8 +2,9 @@
 
 export class Stream {
   stack: number[] = []
+  position = 0
 
-  constructor(public arr: string[], public skip: RegExp, public position: number = 0) { }
+  constructor(public arr: string[], public skip: RegExp) { }
 
   save() {
     this.stack.push(this.position)

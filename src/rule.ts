@@ -1,5 +1,5 @@
 
-import {Stream} from './tokenizer'
+import {Stream, Tokenizer} from './tokenizer'
 
 export type RuleDecl = string | RegExp | BaseRule
 
@@ -295,6 +295,8 @@ export function ZeroOrMore(...r: RuleDecl[]): ZeroOrMoreRule {
   return new ZeroOrMoreRule(_(...r))
 }
 
+export const Z = ZeroOrMore
+
 export function Try(...r: RuleDecl[]): TryRule {
   return new TryRule(r.map(convertRule))
 }
@@ -314,4 +316,37 @@ export function Operator(...op: string[]): BaseRule {
   return res
 }
 
-export const Op = Operator
+export const O = Operator
+
+
+export class Language {
+
+  static languages: Language[]
+
+  static get(alias: string) {
+    for (var l of this.languages) {
+      if (l.aliases.indexOf(alias) > -1)
+        return l
+    }
+    return null
+  }
+
+  static create(rule: BaseRule, ...res: RegExp[]) {
+    var l = new Language(rule, new Tokenizer(...res))
+    this.languages.push(l)
+    return l
+  }
+
+  aliases: string[] = []
+
+  constructor(public rule: BaseRule, public tokenizer: Tokenizer) { }
+
+  alias(...alias: string[]): this {
+    this.aliases = this.aliases.concat(alias)
+    return this
+  }
+
+  parse(): string {
+
+  }
+}

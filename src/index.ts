@@ -2,7 +2,9 @@
 // import {_, K, Try, Op} from './rule'
 
 import {LANGUAGE} from './languages/javascript'
+
 import {Tokenizer, Stream} from './tokenizer'
+
 
 export function parse(str: string): string {
   var tk = new Tokenizer(
