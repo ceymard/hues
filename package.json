@@ -1,5 +1,5 @@
 {
-  "name": "pegp",
+  "name": "hued",
   "main": "./build/index.js",
   "typings": "./build/index.d.ts",
   "devDependencies": {
