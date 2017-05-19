@@ -37,8 +37,6 @@ export class Stream {
 
 export class Tokenizer {
 
-  stream: string[] = []
-  position: number = 0
   re: RegExp = /./
 
   constructor(...args: (string|RegExp)[]) {
@@ -46,7 +44,7 @@ export class Tokenizer {
     this.re = new RegExp(`${tks.join('|')}`, 'g')
   }
 
-  feed(str: string) {
+  feed(str: string): string[] {
     var re = this.re
     var exec
 
@@ -54,8 +52,6 @@ export class Tokenizer {
     while (exec = re.exec(str)) {
       res.push(exec[0])
     }
-    this.stream = res
-    // resets the parser
-    this.position = 0
+    return res
   }
 }

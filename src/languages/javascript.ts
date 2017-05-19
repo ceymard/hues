@@ -237,7 +237,7 @@ const NAMED_FUNCTION = _(
 )
 
 const ARROW_FUNCTION = _(
-  ARGUMENTS,
+  Either(ARGUMENTS, ID),
   O('=>'),
   Optional(CODE_BLOCK)
 )
@@ -296,7 +296,7 @@ TOPLEVEL.define(Either(
 
 const LANGUAGE = Try(TOPLEVEL)
 
-Language.create(LANGUAGE,
+Language.create(LANGUAGE, /^[\t\n\r ]+$/,
   /===|!==|==|!=|>=|<=/,
   /&&|\|\|/,
   />>>|>>|<<|\/>|<\//,
@@ -308,5 +308,11 @@ Language.create(LANGUAGE,
   /[\t \r]+|\n/,
   /./
 ).alias(
-  'ts', 'js', 'tsx', 'jsx', 'javascript', 'typescript', 'react'
+  'ts',
+  'js',
+  'tsx',
+  'jsx',
+  'javascript',
+  'typescript',
+  'react'
 )

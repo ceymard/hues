@@ -321,7 +321,7 @@ export const O = Operator
 
 export class Language {
 
-  static languages: Language[]
+  static languages: Language[] = []
 
   static get(alias: string) {
     for (var l of this.languages) {
@@ -331,22 +331,28 @@ export class Language {
     return null
   }
 
-  static create(rule: BaseRule, ...res: RegExp[]) {
-    var l = new Language(rule, new Tokenizer(...res))
+  static create(rule: BaseRule, skip: RegExp, ...res: RegExp[]) {
+    var l = new Language(rule, skip, new Tokenizer(...res))
     this.languages.push(l)
     return l
   }
 
   aliases: string[] = []
 
-  constructor(public rule: BaseRule, public tokenizer: Tokenizer) { }
+  constructor(public rule: BaseRule, public skip: RegExp, public tokenizer: Tokenizer) { }
 
   alias(...alias: string[]): this {
     this.aliases = this.aliases.concat(alias)
     return this
   }
 
-  parse(): string {
-
+  parse(str: string): string {
+    var tokens = this.tokenizer.feed(str)
+    var stream = new Stream(tokens, this.skip)
+    return (this.rule.run(stream)||[]).map(s => typeof s === 'string' ?
+      s.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+    : s.toString()).join('')
   }
 }
