@@ -84,7 +84,9 @@ const LITERALS = Str(
   'undefined',
 ).class('literal')
 
-const ID = Re(/^[$a-zA-Z\u00C0-\u017F_][$a-zA-Z\u00C0-\u017F_0-9]*$/)
+const ID_BASE = Re(/^[$a-zA-Z\u00C0-\u017F_][$a-zA-Z\u00C0-\u017F_0-9]*$/)
+const ID_UPPER_START = Re(/^[$A-Z][$a-zA-Z\u00C0-\u017F_0-9]*$/)
+const ID = Either(ID_UPPER_START.class('upper-start'), ID_BASE)
 
 
 const LBRACKET = O('{')
@@ -136,11 +138,14 @@ const CODE_BLOCK = _(LBRACKET, Try(TOPLEVEL).until(LookAhead(RBRACKET)), RBRACKE
 // Forward declaration
 const OBJECT_LITERAL = _()
 
+const FUNCTION_CALL = _(
+  ID.class('function-call'), LookAhead('('))
+
 const DOTTED_NAME = _(ID, Z(DOT, ID))
 
 // Used to swallow properties that would otherwise be keywords
 const DOTTED_GUARD = _(DOT, Either(
-  _(ID.class('function-call'), LookAhead('(')),
+  FUNCTION_CALL,
   ID
 ))
 
@@ -248,19 +253,15 @@ const NAMED_FUNCTION = _(
   K('function'),
   Optional(ID).class('function'),
   Optional(TYPE_GENERIC.class('type')),
-  ARGUMENTS,
-  CODE_BLOCK
+  ARGUMENTS
 ).class('function-declaration')
 
 const ARROW_FUNCTION = _(
   Either(_(Optional(TYPE_GENERIC.class('type')), ARGUMENTS), ID),
-  O('=>'),
-  Optional(CODE_BLOCK)
+  O('=>')
 )
 
-const FUNCTION = Either(NAMED_FUNCTION, ARROW_FUNCTION)
-
-const FUNCTION_CALL = _(ID.class('function-call'), LookAhead('('))
+const FUNCTION_DECL = Either(NAMED_FUNCTION, ARROW_FUNCTION)
 
 //////////////////////////////////////////////////////////////
 
@@ -299,7 +300,7 @@ _JSX.define(Either(
   _(OPENING_TAG, Try(
     _JSX,
     HTML_ENTITY,
-    CODE_BLOCK.class('toplevel typescript')
+    CODE_BLOCK.class('toplevel typescript in-jsx')
   ).until(CLOSING_TAG)),
   SELF_CLOSING_TAG
 ))
@@ -314,7 +315,7 @@ TOPLEVEL.define(Either(
   NUMBER,
   TYPE_DEF,
   TYPED_VAR,
-  FUNCTION,
+  FUNCTION_DECL,
   JSX,
   OBJECT_LITERAL,
   CODE_BLOCK,
